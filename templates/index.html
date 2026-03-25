@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iTalk Lead Manager</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --blue-50: #eff6ff; --blue-100: #dbeafe; --blue-200: #bfdbfe;
+            --blue-500: #3b82f6; --blue-600: #2563eb; --blue-700: #1d4ed8; --blue-800: #1e40af; --blue-900: #1e3a8a;
+            --green-50: #f0fdf4; --green-500: #22c55e; --green-600: #16a34a; --green-700: #15803d;
+            --red-50: #fef2f2; --red-500: #ef4444; --red-600: #dc2626;
+            --amber-50: #fffbeb; --amber-500: #f59e0b; --amber-600: #d97706;
+            --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-300: #d1d5db;
+            --gray-400: #9ca3af; --gray-500: #6b7280; --gray-600: #4b5563; --gray-700: #374151;
+            --gray-800: #1f2937; --gray-900: #111827;
+            --radius: 8px; --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+        }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--gray-50); color: var(--gray-800); line-height: 1.5; }
+
+        /* Layout */
+        .app { display: flex; min-height: 100vh; }
+        .sidebar { width: 240px; background: var(--gray-900); color: white; padding: 0; position: fixed; top: 0; left: 0; bottom: 0; z-index: 40; display: flex; flex-direction: column; }
+        .sidebar-header { padding: 20px 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-header h1 { font-size: 18px; font-weight: 700; color: white; }
+        .sidebar-header p { font-size: 11px; color: var(--gray-400); margin-top: 2px; letter-spacing: 0.5px; text-transform: uppercase; }
+        .sidebar-nav { flex: 1; padding: 12px 8px; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 6px; cursor: pointer; color: var(--gray-400); font-size: 14px; font-weight: 500; transition: all 0.15s; margin-bottom: 2px; border: none; background: none; width: 100%; text-align: left; }
+        .nav-item:hover { color: white; background: rgba(255,255,255,0.08); }
+        .nav-item.active { color: white; background: var(--blue-700); }
+        .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .nav-badge { margin-left: auto; background: var(--blue-600); color: white; font-size: 11px; padding: 1px 7px; border-radius: 10px; font-weight: 600; }
+
+        .main { flex: 1; margin-left: 240px; }
+        .topbar { background: white; border-bottom: 1px solid var(--gray-200); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 30; }
+        .topbar h2 { font-size: 20px; font-weight: 600; color: var(--gray-900); }
+        .content { padding: 24px 32px; }
+
+        /* Cards */
+        .card { background: white; border: 1px solid var(--gray-200); border-radius: var(--radius); box-shadow: var(--shadow); }
+        .card-header { padding: 16px 20px; border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; justify-content: space-between; }
+        .card-header h3 { font-size: 15px; font-weight: 600; color: var(--gray-800); }
+        .card-body { padding: 20px; }
+
+        /* Stat Cards */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: white; border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+        .stat-card .label { font-size: 12px; font-weight: 500; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card .value { font-size: 28px; font-weight: 700; color: var(--gray-900); margin-top: 4px; }
+        .stat-card .sub { font-size: 13px; color: var(--gray-500); margin-top: 2px; }
+        .stat-card.blue { border-left: 3px solid var(--blue-500); }
+        .stat-card.green { border-left: 3px solid var(--green-500); }
+        .stat-card.amber { border-left: 3px solid var(--amber-500); }
+        .stat-card.red { border-left: 3px solid var(--red-500); }
+
+        /* Table */
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        thead th { padding: 10px 12px; text-align: left; font-weight: 600; color: var(--gray-600); background: var(--gray-50); border-bottom: 1px solid var(--gray-200); white-space: nowrap; font-size: 12px; text-transform: uppercase; letter-spacing: 0.3px; }
+        tbody td { padding: 10px 12px; border-bottom: 1px solid var(--gray-100); color: var(--gray-700); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        tbody tr:hover { background: var(--blue-50); }
+        tbody tr { cursor: pointer; }
+
+        /* Badges */
+        .badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+        .badge-pending { background: var(--amber-50); color: var(--amber-600); }
+        .badge-approved { background: var(--green-50); color: var(--green-700); }
+        .badge-denied { background: var(--red-50); color: var(--red-600); }
+
+        /* Buttons */
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: all 0.15s; font-family: inherit; }
+        .btn-primary { background: var(--blue-600); color: white; }
+        .btn-primary:hover { background: var(--blue-700); }
+        .btn-success { background: var(--green-600); color: white; }
+        .btn-success:hover { background: var(--green-700); }
+        .btn-danger { background: var(--red-500); color: white; }
+        .btn-danger:hover { background: var(--red-600); }
+        .btn-outline { background: white; color: var(--gray-700); border-color: var(--gray-300); }
+        .btn-outline:hover { background: var(--gray-50); }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+        .btn-group { display: flex; gap: 8px; }
+
+        /* Forms */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-group { display: flex; flex-direction: column; gap: 4px; }
+        .form-group.full { grid-column: 1 / -1; }
+        .form-group label { font-size: 13px; font-weight: 500; color: var(--gray-700); }
+        .form-group input, .form-group select, .form-group textarea { padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 6px; font-size: 14px; font-family: inherit; transition: border-color 0.15s; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--blue-500); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+
+        /* Search bar */
+        .search-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+        .search-input { flex: 1; min-width: 200px; padding: 8px 12px 8px 36px; border: 1px solid var(--gray-300); border-radius: 6px; font-size: 14px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%239ca3af' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: 10px center; }
+        .search-input:focus { outline: none; border-color: var(--blue-500); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        .filter-select { padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 6px; font-size: 13px; background: white; cursor: pointer; }
+
+        /* Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: flex; align-items: center; justify-content: center; }
+        .modal { background: white; border-radius: 12px; width: 90%; max-width: 700px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--gray-200); display: flex; align-items: center; justify-content: space-between; }
+        .modal-header h3 { font-size: 18px; font-weight: 600; }
+        .modal-body { padding: 24px; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid var(--gray-200); display: flex; justify-content: flex-end; gap: 8px; }
+        .close-btn { background: none; border: none; cursor: pointer; color: var(--gray-400); padding: 4px; border-radius: 4px; }
+        .close-btn:hover { color: var(--gray-600); background: var(--gray-100); }
+
+        /* Charts */
+        .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+        .chart-container { position: relative; height: 280px; }
+
+        /* Funnel */
+        .funnel { display: flex; flex-direction: column; gap: 8px; padding: 20px; }
+        .funnel-step { display: flex; align-items: center; gap: 16px; }
+        .funnel-bar { height: 36px; border-radius: 4px; display: flex; align-items: center; padding: 0 12px; font-size: 13px; font-weight: 600; color: white; transition: width 0.5s ease; min-width: 60px; }
+        .funnel-label { font-size: 13px; color: var(--gray-600); min-width: 100px; text-align: right; font-weight: 500; }
+        .funnel-value { font-size: 13px; color: var(--gray-800); font-weight: 600; min-width: 40px; }
+
+        /* Detail view */
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .detail-item { padding: 8px 0; }
+        .detail-item .dlabel { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--gray-500); font-weight: 500; }
+        .detail-item .dvalue { font-size: 14px; color: var(--gray-800); margin-top: 2px; }
+        .detail-notes { grid-column: 1 / -1; padding: 12px; background: var(--gray-50); border-radius: 6px; margin-top: 8px; }
+        .detail-notes .dlabel { font-size: 11px; text-transform: uppercase; color: var(--gray-500); font-weight: 500; margin-bottom: 6px; }
+        .detail-notes .dvalue { font-size: 13px; color: var(--gray-700); line-height: 1.6; white-space: pre-wrap; }
+
+        /* Pagination */
+        .pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; font-size: 13px; color: var(--gray-500); }
+        .page-buttons { display: flex; gap: 4px; }
+        .page-btn { padding: 6px 12px; border: 1px solid var(--gray-300); background: white; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .page-btn:hover { background: var(--gray-50); }
+        .page-btn.active { background: var(--blue-600); color: white; border-color: var(--blue-600); }
+        .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Settings */
+        .settings-section { margin-bottom: 24px; }
+        .settings-section h4 { font-size: 15px; font-weight: 600; margin-bottom: 12px; color: var(--gray-800); }
+        .settings==============================================================================
+// Dashboard Page
+// =============================================================================
+function DashboardPage() {
+    const [stats, setStats] = useState(null);
+    const [timeline, setTimeline] = useState([]);
+    const [cityData, setCityData] = useState([]);
+    const [period, setPeriod] = useState('all');
+    const timelineChartRef = useRef(null);
+    const cityChartRef = useRef(null);
+    const timelineCanvasRef = useRef(null);
+    const cityCanvasRef = useRef(null);
+
+    useEffect(() => {
+        api.get(`/api/analytics/summary?period=${period}`).then(setStats);
+        api.get('/api/analytics/timeline?granularity=month').then(setTimeline);
+        api.get('/api/analytics/by_city').then(setCityData);
+    }, [period]);
+
+    useEffect(() => {
+        if (!timeline.length || !timelineCanvasRef.current) return;
+        if (timelineChartRef.current) timelineChartRef.current.destroy();
+        timelineChartRef.current = new Chart(timelineCanvasRef.current, {
+            type: 'bar',
+            data: {
+                labels: timeline.map(t => t.period),
+                datasets: [
+                    { label: 'Leads', data: timeline.map(t => t.leads), backgroundColor: 'rgba(59,130,246,0.7)', borderRadius: 4 },
+                    { label: 'Appointments', data: timeline.map(t => t.appointments), backgroundColor: 'rgba(34,197,94,0.7)', borderRadius: 4 },
+                    { label: 'Proposals', data: timeline.map(t => t.proposals), backgroundColor: 'rgba(245,158,11,0.7)', borderRadius: 4 },
+                    { label: 'Won', data: timeline.map(t => t.won), backgroundColor: 'rgba(16,185,129,0.9)', borderRadius: 4 },
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 16, font: { size: 12 } } } },
+                scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: '#f3f4f6' } } }
+            }
+        });
+    }, [timeline]);
+
+    useEffect(() => {
+        if (!cityData.length || !cityCanvasRef.current) return;
+        if (cityChartRef.current) cityChartRef.current.destroy();
+        const top8 = cityData.filter(c => c.city).slice(0, 8);
+        cityChartRef.current = new Chart(cityCanvasRef.current, {
+            type: 'doughnut',
+            data: {
+                labels: top8.map(c => c.city || 'Unknown'),
+                datasets: [{
+                    data: top8.map(c => c.leads),
+                    backgroundColor: ['#3b82f6','#22c55e','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899','#6366f1'],
+                    borderWidth: 2, borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'right', labels: { usePointStyle: true, padding: 12, font: { size: 12 } } } },
+                cutout: '60%'
+            }
+        });
+    }, [cityData]);
+
+    if (!stats) return <div className="empty-state"><p>Loading dashboard...</p></div>;
+
+    const funnel = stats.funnel || {};
+    const maxFunnel = Math.max(funnel.leads || 1, 1);
+
+    return (
+        <div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                <div className="tab-group">
+                    {['all','30d','90d','6m','1y'].map(p => (
+                        <button key={p} className={`tab-btn ${period === p ? 'active' : ''}`} onClick={() => setPeriod(p)}>
+                            {p === 'all' ? 'All Time' : p === '30d' ? '30 Days' : p === '90d' ? '90 Days' : p === '6m' ? '6 Months' : '1 Year'}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className="stats-grid">
+                <div className="stat-card blue">
+                    <div className="label">Total Leads</div>
+                    <div className="value">{stats.total_leads}</div>
+                    <div className="sub">{stats.by_status?.pending || 0} pending review</div>
+                </div>
+                <div className="stat-card green">
+                    <div className="label">Approval Rate</div>
+                    <div className="value">{stats.approval_rate}%</div>
+                    <div className="sub">{stats.by_status?.approved || 0} approved / {stats.by_status?.denied || 0} denied</div>
+                </div>
+                <div className="stat-card amber">
+                    <div className="label">Proposals Sent</div>
+                    <div className="value">{stats.proposals_sent}</div>
+                    <div className="sub">{stats.appointments_completed} appointments completed</div>
+                </div>
+                <div className="stat-card green">
+                    <div className="label">Win Rate</div>
+                    <div className="value">{stats.win_rate}%</div>
+                    <div className="sub">{stats.won} won / {stats.lost} lost</div>
+                </div>
+                <div className="stat-card blue">
+                    <div className="label">Revenue (One-time)</div>
+                    <div className="value">${(stats.revenue_sold || 0).toLocaleString()}</div>
+                </div>
+                <div className="stat-card green">
+                    <div className="label">Revenue (Monthly)</div>
+                    <div className="value">${(stats.revenue_monthly || 0).toLocaleString()}</div>
+                    <div className="sub">recurring monthly</div>
+                </div>
+            </div>
+
+            {/* Conversion Funnel */}
+            <div className="card" style={{ marginBottom: 24 }}>
+                <div className="card-header"><h3>Conversion Funnel</h3></div>
+                <div className="funnel">
+                    {[
+                        { label: 'Leads', value: funnel.leads, color: '#3b82f6' },
+                        { label: 'Appointments', value: funnel.appointments, color: '#8b5cf6' },
+                        { label: 'Proposals', value: funnel.proposals, color: '#f59e0b' },
+                        { label: 'Won', value: funnel.won, color: '#22c55e' },
+                    ].map((step, i) => (
+                        <div className="funnel-step" key={i}>
+                            <div className="funnel-label">{step.label}</div>
+                            <div className="funnel-bar" style={{ width: `${(Math.max((step.value / maxFunnel) * 100, 8)}%>`, background: step.color }}>
+                                {step.value}
+                            </div>
+                            {i > 0 && <div className="funnel-value" style={{color: 'var(--gray-500)', fontSize: 12}}>
+                                {funnel.leads > 0 ? `${(step.value / funnel.leads * 100).toFixed(1)}%` : '0%'}
+                            </div>}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="charts-grid">
+                <div className="card">
+                    <div className="card-header"><h3>Lead Volume Over Time</h3></div>
+                    <div className="card-body">
+                        <div className="chart-container"><canvas ref={timelineCanvasRef}></canvas></div>
+                    </div>
+                </div>
+                <div className="card">
+                    <div className="card-header"><h3>Leads by City</h3></div>
+                    <div className="card-body">
+                        <div className="chart-container"><canvas ref={cityCanvasRef}></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            {/* City Breakdown Table */}
+            <div className="card">
+                <div className="card-header"><h3>Performance by City</h3></div>
+                <div className="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>City</th><th>Leads</th><th>Appts</th><th>Proposals</th>
+                                <th>Won</th><th>Lost</th><th>Approved</th><th>Denied</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {cityData.filter(c => c.city).map((c, i) => (
+                                <tr key={i} style={{cursor:'default'}}>
+                                    <td style={{fontWeight:500}}>{c.city}</td>
+                                    <td>{c.leads}</td><td>{c.appointments}</td><td>{c.proposals}</td>
+                                    <td style={{color:'var(--green-600)'}}>{c.won}</td>
+                                    <td style={{color:'var(--red-500)'}}>{c.lost}</td>
+                                    <td>{c.approved}</td><td>{c.denied}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// =============================================================================
+// Lead Form Modal
+// =============================================================================
+function LeadFormModal({ onClose, onSave, lead }) {
+    const [form, setForm] = useState(lead || {
+        date: new Date().toISOString().split('T')[0],
+        company: '', address: '', contact: '', email: '', phone: '',
+        city: '', sys4: '', notes: ''
+    });
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!form.company) return;
+        if (lead?.id) {
+            await api.put(`/api/leads/${lead.id}`, form);
+        } else {
+            await api.post('/api/leads', form);
+        }
+        onSave();
+    };
+
+    const set = (k, v) => setForm({ ...form, [k]: v });
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+                <div className="modal-header">
+                    <h3>{lead?.id ? 'Edit Lead' : 'New Lead'}</h3>
+                    <button className="close-btn" onClick={onClose}><Icons.X /></button>
+                </div>
+                <form onSubmit={handleSubmit}>
+                    <div className="modal-body">
+                        <div className="form-grid">
+                            <div className="form-group">
+                                <label>Date</label>
+                                <input type="date" value={form.date || ''} onChange={e => set('date', e.target.value)} />
+                            </div>
+                            <div className="form-group">
+                                <label>Company *</label>
+                                <input type="text" value={form.company} onChange={e => set('company', e.target.value)} required placeholder="Company name" />
+                            </div>
+                            <div className="form-group full">
+                                <label>Address</label>
+                                <input type="text" value={form.address || ''} onChange={e => set('address', e.target.value)} placeholder="Full address" />
+                            </div>
+                            <div className="form-group">
+                                <label>Contact Name</label>
+                                <input type="text" value={form.contact || ''} onChange={e => set('contact', e.target.value)} placeholder="Contact person" />
+                            </div>
+                            <div className="form-group">
+                                <label>Email</label>
+                                <input type="email" value={form.email || ''} onChange={e => set('email', e.target.value)} placeholder="email@example.com" />
+                            </div>
+                            <div className="form-group">
+                                <label<Phone</label>
+                                <input type="text" value={form.phone || ''} onChange={e => set('phone', e.target.value)} placeholder="Phone number" />
+                            </div>
+                            <div className="form-group">
+                                <label>City</label>
+                                <input type="text" value={form.city || ''} onChange={e => set('city', e.target.value)} placeholder="City" />
+                            </div>
+                            <div className="form-group full">
+                                <label>Notes</label>
+                                <textarea value={form.notes || ''} onChange={e => set('notes', e.target.value)} placeholder="Appointment details, notes from iTalk..." rows={4}></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="modal-footer">
+                        <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
+                        <button type="submit" className="btn btn-primary">{lead?.id ? 'Save Changes' : 'Create Lead'}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+// ===================================================eviewed_at}</div></div>}
+                        {lead.denial_reason && <div className="detail-item"><div className="dlabel">Denial Reason</div><div className="dvalue" style={{color:'var(--red-500)'}}>{lead.denial_reason}</div></div>}
+                        <div className="detail-notes">
+                            <div className="dlabel">Notes</div>
+                            <div className="dvalue">{bÍ¶ÖBææ÷FW2ÇÂtæòæ÷FW2wÓÂöFcà¢ÂöFcà¢ÂöFcà¢ÂöFcà¢ÆFb6Æ74æÖSÒ&ÖöFÂÖfö÷FW""7GÆS×·¶fÆWF&V7Föã¢v6öÇVÖârÂÆväFV×3¢w7G&WF6rÂv¢'×Óà¢·6÷tFVçbb¢ÆFb7GÆS×·¶F7Æ¢vfÆWrÂv¢×Óà¢ÆçWBGSÒ'FWB"fÇVS×·&V6öçÒöä6ævS×¶RÓâ6WE&V6öâRçF&vWBçfÇVRÒÆ6VöÆFW#Ò%&V6öâf÷"FVæÂâââ"7GÆS×·¶fÆW£ÂFFæs¢s'rÂ&÷&FW#¢s6öÆBf"ÒÖw&Ó3rÂ&÷&FW%&FW3£bÂföçE6¦S£G×Òóà¢Æ'WGFöâ6Æ74æÖSÒ&'Fâ'FâÖFævW"'Fâ×6Ò"öä6Æ6³×²Óâ²öä7FöâvFVçrÂ&V6öâ²6WE6÷tFVçfÇ6R²×Óä6öæf&ÒFVçÂö'WGFöãà¢Æ'WGFöâ6Æ74æÖSÒ&'Fâ'FâÖ÷WFÆæR'Fâ×6Ò"öä6Æ6³×²Óâ6WE6÷tFVçfÇ6RÓä6æ6VÃÂö'WGFöãà¢ÂöFcà¢Ð¢ÆFb7GÆS×·¶F7Æ¢vfÆWrÂ§W7Fg6öçFVçC¢vfÆWÖVæBrÂv¢×Óà¢¶ÆVBç7FGW2ÓÓÒwVæFærrbb¢Ãà¢Æ'WGFöâ6Æ74æÖSÒ&'Fâ'Fâ×7V66W72"öä6Æ6³×²Óâöä7Föâv&÷fRrÓà¢Ä6öç2ä6V6²óâ&÷fP¢Âö'WGFöãà¢Æ'WGFöâ6Æ74æÖSÒ&'Fâ'FâÖFævW""öä6Æ6³×²Óâ6WE6÷tFVçG'VRÓà¢Ä6öç2åóâFVç¢Âö'WGFöãà¢Âóà¢Ð¢Æ'WGFöâ6Æ74æÖSÒ&'Fâ'FâÖ÷WFÆæR"öä6Æ6³×¶öä6Æ÷6WÓä6Æ÷6SÂö'WGFöãà¢ÂöFcà¢ÂöFcà¢ÂöFcà¢ÂöFcà¢°§Ð ¢òòÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÐ¢òòÆVG2Æ7BvP¢òòÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÐ¦gVæ7FöâÆVG5vR²fÇFW%7FGW2Â6÷uFö7BÒ°¢6öç7B¶ÆVG2Â6WDÆVG5ÒÒW6U7FFRµÒ°¢6öç7B·F÷FÂÂ6WEF÷FÅÒÒW6U7FFR°¢6öç7B·vRÂ6WEvUÒÒW6U7FFR°¢6öç7B·vW2Â6WEvW5ÒÒW6U7FFR°¢6öç7B·6V&6Â6WE6V&6ÒÒW6U7FFRrr°¢6öç7B·7FGW2Â6WE7FGW5ÒÒW6U7FFRfÇFW%7FGW2ÇÂrr°¢6öç7B·&VvöâÂ6WE&VvöåÒÒW6U7FFRrr°¢6öç7B·6÷tf÷&ÒÂ6WE6÷tf÷&ÕÒÒW6U7FFRfÇ6R°¢6öç7B·6÷tFWFÂÂ6WE6÷tFWFÅÒÒW6U7FFRçVÆÂ°¢6öç7B¶VFDÆVBÂ6WDVFDÆVEÒÒW6U7FFRçVÆÂ° ¢6öç7BÆöDÆVG2ÒW6T6ÆÆ&6²Óâ°¢6öç7B&×2ÒæWrU$Å6V&6&×2²vRÂW%÷vS¢SÒ°¢b7FGW2&×2ç6WBw7FGW2rÂ7FGW2°¢b&Vvöâ&×2ç6WBw&VvöârÂ&Vvöâ°¢b6V&6&×2ç6WBw6V&6rÂ6V&6°¢ævWBööÆVG3òG·&×7ÖçFVâFFÓâ°¢6WDÆVG2FFæÆVG2°¢6WEF÷FÂFFçF÷FÂ°¢6WEvW2FFçvW2°¢Ò°¢ÒÂ·vRÂ7FGW2Â&VvöâÂ6V&6Ò° ¢W6TVffV7BÓâ²ÆöDÆVG2²ÒÂ¶ÆöDÆVG5Ò°¢W6TVffV7BÓâ²bfÇFW%7FGW2ÓÒVæFVfæVB6WE7FGW2fÇFW%7FGW2²ÒÂ¶fÇFW%7FGW5Ò° ¢6öç7BæFÆT7FöâÒ7æ27FöâÂ&V6öâÓâ°¢b7FöâÓÓÒv&÷fRr°¢vBç÷7BööÆVG2òG·6÷tFWFÂæGÒö&÷fVÂ·Ò°¢6÷uFö7BtÆVB&÷fVBrÂw7V66W72r°¢ÒVÇ6R°¢vBç÷7BööÆVG2òG·6÷tFWFÂæGÒöFVçÂ²&V6öâÒ°¢6÷uFö7BtÆVBFVæVBrÂvW'&÷"r°¢Ð¢6WE6÷tFWFÂçVÆÂ°¢ÆöDÆVG2°¢Ó° ¢&WGW&â¢ÆFcà¢ÆFb6Æ74æÖSÒ'6V&6Ö&"#à¢ÆçWB6Æ74æÖSÒ'6V&6ÖçWB"GSÒ'FWB"Æ6VöÆFW#Ò%6V&6ÆVG2âââ"fÇVS×·6V&6Ð¢öä6ævS×¶RÓâ²6WE6V&6RçF&vWBçfÇVR²6WEvR²×Òóà¢Ç6VÆV7B6Æ74æÖSÒ&fÇFW"×6VÆV7B"fÇVS×·7FGW7Òöä6ævS×¶RÓâ²6WE7FGW2RçF&vWBçfÇVR²6WEvR²×Óà¢Æ÷FöâfÇVSÒ"#äÆÂ7FGW6W3Âö÷Föãà¢Æ÷FöâfÇVSÒ'VæFær#åVæFæsÂö÷Föãà¢Æ÷FöâfÇVSÒ&&÷fVB#ä&÷fVCÂö÷Föãà¢Æ÷FöâfÇVSÒ&FVæVB#äFVæVCÂö÷Föãà¢Â÷6VÆV7Cà¢Ç6VÆV7B6Æ74æÖSÒ&fÇFW"×6VÆV7B"fÇVS×·&VvöçÒöä6ævS×¶RÓâ²6WE&VvöâRçF&vWBçfÇVR²6WEvR²×Óà¢Æ÷FöâfÇVSÒ"#äÆÂ&Vvöç3Âö÷Föãà¢Æ÷FöâfÇVSÒ$6öÇVÖ'W2#ä6öÇVÖ'W3Âö÷Föãà¢Æ÷FöâfÇVSÒ$6æ6ææF#ä6æ6ææFÂö÷Föãà¢Æ÷FöâfÇVSÒ$÷FW"#ä÷FW#Âö÷Föãà¢Â÷6VÆV7Cà¢Æ'WGFöâ6Æ74æÖSÒ&'Fâ'Fâ×&Ö'"öä6Æ6³×²Óâ6WE6÷tf÷&ÒG'VRÓà¢Ä6öç2äFBóâæWrÆV@¢Âö'WGFöãà¢ÂöFcà ¢ÆFb6Æ74æÖSÒ&6&B#à¢ÆFb6Æ74æÖSÒ'F&ÆR×w&W"#à¢ÇF&ÆSà¢ÇFVCà¢ÇG#à¢ÇFäFFSÂ÷FãÇFä6ö×çÂ÷FãÇFä6öçF7CÂ÷FãÇFä6GÂ÷Fà¢ÇFåöæSÂ÷FãÇFå7FGW3Â÷FãÇFäCÂ÷FãÇFå&÷÷6ÃÂ÷FãÇFåvöãÂ÷Fà¢Â÷G#à¢Â÷FVCà¢ÇF&öGà¢¶ÆVG2æÆVæwFÓÓÒò¢ÇG#ãÇFB6öÅ7ã×³Ò7GÆS×··FWDÆvã¢v6VçFW"rÂFFæs£3"Â6öÆ÷#¢wf"ÒÖw&ÓCw×ÓäæòÆVG2f÷VæCÂ÷FCãÂ÷G#à¢¢ÆVG2æÖÆVBÓâ¢ÇG"¶W×¶ÆVBæGÒöä6Æ6³×²Óâ6WE6÷tFWFÂÆVBÓà¢ÇFCçµ¬Ûmad.date ? lead.date.split('T')[0] : '-'}</td>
+                                    <td style={{fontWeight:500, color:'var(--gray-900)'}}>{lead.company}</td>
+                                    <td>{lead.contact || '-'}</td>
+                                    <td>{lead.city || '-'}</td>
+                                    <td>{bÍ¶ÖBçöæRÇÂrÒwÓÂ÷FCà¢ÇFCãÇ7â6Æ74æÖS×¶&FvR&FvRÒG¶ÆVBç7FGW7ÖÓç¶ÆVBç7FGW7ÓÂ÷7ããÂ÷FCà¢ÇFCç¶ÆVBæöçFÖVçEö6ö×ÆWFVBò~)É2r¢rÒwÓÂ÷FCà¢ÇFCç¶ÆVBç&÷÷6Âò~)É2r¢rÒwÓÂ÷FCà¢ÇFCç¶ÆVBçvöâò~)É2r¢ÆVBæÆ÷7Bò~)Érr¢rÒwÓÂ÷FCà¢Â÷G#à¢Ð¢Â÷F&öGà¢Â÷F&ÆSà¢ÂöFcà¢·vW2âbb¢ÆFb6Æ74æÖSÒ'væFöâ"7GÆS×··FFæs¢s'#w×Óà¢Ç7ãå6÷vær²vRÓ£S³Ò×´ÖFæÖâvR£SÂF÷FÂÒöb·F÷FÇÓÂ÷7ãà¢ÆFb6Æ74æÖSÒ'vRÖ'WGFöç2#à¢Æ'WGFöâ6Æ74æÖSÒ'vRÖ'Fâ"F6&ÆVC×·vSÃÓÒöä6Æ6³×²Óâ6WEvRÓçÓÓâfÆVó²&WcÂö'WGFöãà¢´'&æg&öÒ¶ÆVæwF¢ÖFæÖâvW2ÂrÒÂòÂÓâ°¢6öç7BÒvW2ÃÒrò³¢vRÃÒBò³¢vRãÒvW2Ó2òvW2Ób¶¢vRÓ2¶°¢&WGW&âÆ'WGFöâ¶W×·Ò6Æ74æÖS×¶vRÖ'FâG·ÓÓ×vSòv7FfRs¢rwÖÒöä6Æ6³×²Óâ6WEvRÓç·ÓÂö'WGFöãã°¢ÒÐ¢Æ'WGFöâ6Æ74æÖSÒ'vRÖ'Fâ"F6&ÆVC×·vSã×vW7Òöä6Æ6³×²Óâ6WEvRÓç³ÓäæWBg&Vó³Âö'WGFöãà¢ÂöFcà¢ÂöFcà¢Ð¢ÂöFcà ¢·6÷tf÷&ÒbbÄÆVDf÷&ÔÖöFÂöä6Æ÷6S×²Óâ²6WE6÷tf÷&ÒfÇ6R²6WDVFDÆVBçVÆÂ²×ÒÆVC×¶VFDÆVGÒöå6fS×²Óâ²6WE6÷tf÷&ÒfÇ6R²6WDVFDÆVBçVÆÂ²ÆöDÆVG2²6÷uFö7BtÆVB6fVBrÂw7V66W72r²×ÒóçÐ¢·6÷tFWFÂbbÄÆVDFWFÄÖöFÂÆVC×·6÷tFWFÇÒöä6Æ÷6S×²Óâ6WE6÷tFWFÂçVÆÂÒöä7Föã×¶æFÆT7FöçÒóçÐ¢ÂöFcà¢°§Ð ¢òòÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÐ¢òò&WfWrVWVRvP¢òòÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÐ¦gVæ7Föâ&WfWuvR²6÷uFö7BÒ°¢&WGW&âÄÆVG5vRfÇFW%7FGW3Ò'VæFær"6÷uFö7C×·6÷uFö7GÒóã°§Ð ¢òòÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÐ¢òòÖâ ¢òòÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÐ¦gVæ7Föâ°¢6öç7B¶7FfUvRÂ6WD7FfUvUÒÒW6U7FFRvF6&ö&Br°¢6öç7B·Fö7BÂ6WEFö7EÒÒW6U7FFRçVÆÂ°¢6öç7B·VæFæt6÷VçBÂ6WEVæFæt6÷VçEÒÒW6U7FFR° ¢W6TVffV7BÓâ°¢ævWBrööÆVG3÷7FGW3×VæFærgW%÷vSÓrçFVâBÓâ6WEVæFæt6÷VçBBçF÷FÂ°¢6öç7BçFW'al = setInterval(() => {
+            api.get('/api/leads?status=pending&per_page=1').then(d => setPendingCount(d.total));
+        }, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const showToast = (message, type) => {
+        setToast({ message, type });
+        // Refresh pending count
+        api.get('/api/leads?status=pending&per_page=1').then(d => setPendingCount(d.total));
+    };
+
+    const navItems = [
+        { id: 'dashboard', label: 'Dashboard', icon: Icons.Dashboard },
+        { id: 'leads', label: 'All Leads', icon: Icons.Leads },
+        { id: 'review', label: 'Review Queue', icon: Icons.Review, badge: pendingCount },
+    ];
+
+    const titles = { dashboard: 'Analytics Dashboard', leads: 'All Leads', review: 'Review Queue' };
+
+    return (
+        <div className="app">
+            <div className="sidebar">
+                <div className="sidebar-header">
+                    <h1>iTalk Lead Manager</h1>
+                    <p>Lead Generation Platform</p>
+                </div>
+                <nav className="sidebar-nav">
+                    {navItems.map(item => (
+                        <button key={item.id} className={`nav-item ${activePage === item.id ? 'active' : ''}`}
+                            onClick={() => setActivePage(item.id)}>
+                            <item.icon />
+                            {item.label}
+                            {item.badge > 0 && <span className="nav-badge">{item.badge}</span>}
+                        </button>
+                    ))}
+                </nav>
+            </div>
+            <div className="main">
+                <div className="topbar">
+                    <h2>{titles[activePage]}</h2>
+                    <button className="btn btn-primary" onClick={() => setActivePage('leads')}>
+                        <Icons.Add /> New Lead
+                    </button>
+                </div>
+                <div className="content">
+                    {activePage === 'dashboard' && <DashboardPage />}
+                    {activePage === 'leads' && <LeadsPage showToast={showToast} />}
+                    {activePage === 'review' && <ReviewPage showToast={showToast} />}
+                </div>
+            </div>
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+        </div>
+    );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
+al = setInterval(() => {
+            api.get('/api/leads?status=pending&per_page=1').then(d => setPendingCount(d.total));
+        }, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const showToast = (message, type) => {
+        setToast({ message, type });
+        // Refresh pending count
+        api.get('/api/leads?status=pending&per_page=1').then(d => setPendingCount(d.total));
+    };
+
+    const navItems = [
+        { id: 'dashboard', label: 'Dashboard', icon: Icons.Dashboard },
+        { id: 'leads', label: 'All Leads', icon: Icons.Leads },
+        { id: 'review', label: 'Review Queue', icon: Icons.Review, badge: pendingCount },
+    ];
+
+    const titles = { dashboard: 'Analytics Dashboard', leads: 'All Leads', review: 'Review Queue' };
+
+    return (
+        <div className="app">
+            <div className="sidebar">
+                <div className="sidebar-header">
+                    <h1>iTalk Lead Manager</h1>
+                    <p>Lead Generation Platform</p>
+                </div>
+                <nav className="sidebar-nav">
+                    {navItems.map(item => (
+                        <button key={item.id} className={`nav-item ${activePage === item.id ? 'active' : ''}`}
+                            onClick={() => setActivePage(item.id)}>
+                            <item.icon />
+                            {item.label}
+                            {item.badge > 0 && <span className="nav-badge">{item.badge}</span>}
+                        </button>
+                    ))}
+                </nav>
+            </div>
+            <div className="main">
+                <div className="topbar">
+                    <h2>{titles[activePage]}</h2>
+                    <button className="btn btn-primary" onClick={() => setActivePage('leads')}>
+                        <Icons.Add /> New Lead
+                    </button>
+                </div>
+                <div className="content">
+                    {activePage === 'dashboard' && <DashboardPage />}
+                    {activePage === 'leads' && <LeadsPage showToast={showToast} />}
+                    {activePage === 'review' && <ReviewPage showToast={showToast} />}
+                </div>
+            </div>
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+        </div>
+    );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
+al = setInterval(() => {
+            api.get('/api/leads?status=pending&per_page=1').then(d => setPendingCount(d.total));
+        }, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const showToast = (message, type) => {
+        setToast({ message, type });
+        // Refresh pending count
+        api.get('/api/leads?status=pending&per_page=1').then(d => setPendingCount(d.total));
+    };
+
+    const navItems = [
+        { id: 'dashboard', label: 'Dashboard', icon: Icons.Dashboard },
+        { id: 'leads', label: 'All Leads', icon: Icons.Leads },
+        { id: 'review', label: 'Review Queue', icon: Icons.Review, badge: pendingCount },
+    ];
+
+    const titles = { dashboard: 'Analytics Dashboard', leads: 'All Leads', review: 'Review Queue' };
+
+    return (
+        <div className="app">
+            <div className="sidebar">
+                <div className="sidebar-header">
+                    <h1>iTalk Lead Manager</h1>
+                    <p>Lead Generation Platform</p>
+                </div>
+                <nav className="sidebar-nav">
+                    {navItems.map(item => (
+                        <button key={item.id} className={`nav-item ${activePage === item.id ? 'active' : ''}`}
+                            onClick={() => setActivePage(item.id)}>
+                            <item.icon />
+                            {item.label}
+                            {item.badge > 0 && <span className="nav-badge">{item.badge}</span>}
+                        </button>
+                    ))}
+                </nav>
+            </div>
+            <div className="main">
+                <div className="topbar">
+                    <h2>{titles[activePage]}</h2>
+                    <button className="btn btn-primary" onClick={() => setActivePage('leads')}>
+                        <Icons.Add /> New Lead
+                    </button>
+                </div>
+                <div className="content">
+                    {activePage === 'dashboard' && <DashboardPage />}
+                    {activePage === 'leads' && <LeadsPage showToast={showToast} />}
+                    {activePage === 'review' && <ReviewPage showToast={showToast} />}
+                </div>
+            </div>
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+        </div>
+    );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
